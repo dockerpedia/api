@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirspock/dockerpedia-api/db"
-	null "gopkg.in/guregu/null.v3"
+	"gopkg.in/guregu/null.v3"
 )
 
 type Image struct {
@@ -40,7 +40,7 @@ func FetchImagesRepository(c *gin.Context) {
 	id := c.Param("id")
 	fmt.Println(id)
 
-	stmt, err := db.GetDB().Prepare("SELECT * FROM tag WHERE image_id=$1 limit 10")
+	stmt, err := db.GetDB().Prepare("SELECT * FROM tag WHERE image_id=$1 ORDER BY last_updated DESC limit 10")
 	rows, err := stmt.Query(id)
 
 	if err != nil {

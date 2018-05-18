@@ -85,13 +85,15 @@ func FetchRepository(c *gin.Context) {
 
 	id := c.Param("id")
 	sqlStatement := `SELECT
-        name, full_name, user, description, is_automated,
+        id, name, namespace, full_name, user, description, is_automated,
         last_updated, pull_count, star_count, tags_checked, official
         FROM image WHERE id=$1 LIMIT 20;`
 	row := db.GetDB().QueryRow(sqlStatement, id)
 
 	err := row.Scan(
+		&repo.Id,
 		&repo.Name,
+		&repo.Namespace,
 		&repo.Full_name,
 		&repo.User,
 		&repo.Description,
