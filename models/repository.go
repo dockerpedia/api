@@ -26,9 +26,11 @@ type Repository struct {
 	Status          null.Bool   `json:"status"`
 	Tags_checked    null.Time   `json:"tags_checked"`
 	Official        null.Bool   `json:"official"`
+	Score           null.Int    `json:"score"`
+	Images          []Image     `json:"images"`
 }
 
-func searchRepository(c *gin.Context) {
+func SearchRepository(c *gin.Context) {
 	pattern := c.DefaultQuery("query", "mysql")
 
 	var (
@@ -38,7 +40,7 @@ func searchRepository(c *gin.Context) {
 
 	fmt.Println(pattern)
 
-	stmt, err := db.GetDB().Prepare("SELECT * FROM image WHERE name like '%' || $1 || '%' ORDER BY pull_count DESC limit 10")
+	stmt, err := db.GetDB().Prepare("SELECT * FROM image WHERE name like '%' || $1 || '%' ORDER BY pull_count DESC limit 20")
 	rows, err := stmt.Query(pattern)
 
 	if err != nil {
@@ -61,7 +63,9 @@ func searchRepository(c *gin.Context) {
 			&repo.Star_count,
 			&repo.Status,
 			&repo.Tags_checked,
-			&repo.Official)
+			&repo.Official,
+			&repo.Score,
+		)
 
 		repos = append(repos, repo)
 		if err != nil {
@@ -77,6 +81,39 @@ func searchRepository(c *gin.Context) {
 	})
 }
 
+func getRepositoriesPattern(repos *[]Repository, pattern string) {
+	var repo Repository
+	stmt, err := db.GetDB().Prepare("SELECT * FROM image WHERE namespace like '%' || $1 || '%' ORDER BY pull_count DESC limit 10")
+	rows, err := stmt.Query(pattern)
+
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	for rows.Next() {
+		err = rows.Scan(
+			&repo.Id,
+			&repo.Name,
+			&repo.Full_name,
+			&repo.Namespace,
+			&repo.User,
+			&repo.Affiliation,
+			&repo.Description,
+			&repo.Is_automated,
+			&repo.Last_updated,
+			&repo.Pull_count,
+			&repo.Repository_type,
+			&repo.Star_count,
+			&repo.Status,
+			&repo.Tags_checked,
+			&repo.Official,
+			&repo.Score,
+		)
+		*repos = append(*repos, repo)
+	}
+	defer rows.Close()
+}
+
 // fetchAllTodo fetch all todos
 func FetchRepository(c *gin.Context) {
 	var (
@@ -86,7 +123,7 @@ func FetchRepository(c *gin.Context) {
 	id := c.Param("id")
 	sqlStatement := `SELECT
         id, name, namespace, full_name, user, description, is_automated,
-        last_updated, pull_count, star_count, tags_checked, official
+        last_updated, pull_count, star_count, tags_checked, score, official
         FROM image WHERE id=$1 LIMIT 20;`
 	row := db.GetDB().QueryRow(sqlStatement, id)
 
@@ -102,7 +139,9 @@ func FetchRepository(c *gin.Context) {
 		&repo.Pull_count,
 		&repo.Star_count,
 		&repo.Tags_checked,
-		&repo.Official)
+		&repo.Score,
+		&repo.Official,
+	)
 
 	if err != nil {
 		panic(err)

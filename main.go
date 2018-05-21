@@ -14,9 +14,11 @@ func main() {
 
 	v1 := router.Group("/api/v1/")
 	{
-		v1.GET("/repositories/", models.FetchImagesRepository)
+		v1.GET("/repositories/", models.SearchRepository)
 		v1.GET("/repositories/:id/", models.FetchRepository)
 		v1.GET("/repositories/:id/images", models.FetchImagesRepository)
+		v1.GET("/viz", models.FetchImagesViz)
+
 	}
 
 	router.Run(":8080")
