@@ -30,13 +30,13 @@ type Image struct {
 	Status       null.Bool   `json:"status"`
 	Last_try     null.Time   `json:"last_try"`
 	Packages     null.Int    `json:"packages"`
-	Critical     null.Int    `json:"vulnerabilitiies_critical"`
-	DefCon1      null.Int    `json:"vulnerabilitiies_defcon1"`
-	High         null.Int    `json:"vulnerabilitiies_high"`
-	Low          null.Int    `json:"vulnerabilitiies_low"`
-	Medium       null.Int    `json:"vulnerabilitiies_medium"`
-	Negligible   null.Int    `json:"vulnerabilitiies_negligible"`
-	Unknown      null.Int    `json:"vulnerabilitiies_unknown"`
+	Critical     null.Int    `json:"vulnerabilities_critical"`
+	DefCon1      null.Int    `json:"vulnerabilities_defcon1"`
+	High         null.Int    `json:"vulnerabilities_high"`
+	Low          null.Int    `json:"vulnerabilities_low"`
+	Medium       null.Int    `json:"vulnerabilities_medium"`
+	Negligible   null.Int    `json:"vulnerabilities_negligible"`
+	Unknown      null.Int    `json:"vulnerabilities_unknown"`
 	Score        null.Int    `json:"value"`
 	Analysed     null.Bool   `json:"analysed"`
 }
