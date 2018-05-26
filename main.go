@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/dockerpedia/api/db"
+	"github.com/dockerpedia/api/models"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
-	"github.com/sirspock/dockerpedia-api/db"
-	"github.com/sirspock/dockerpedia-api/models"
 )
 
 func main() {
