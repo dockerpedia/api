@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/dockerpedia/api/db"
+	"github.com/gin-gonic/gin"
 	"gopkg.in/guregu/null.v3"
 )
 
@@ -73,7 +73,6 @@ func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 			&image.Score,
 			&image.Analysed,
 		)
-		if (*image.Score =)
 		*images = append(*images, image)
 		if err != nil {
 			fmt.Print(err.Error())
