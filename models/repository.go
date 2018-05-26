@@ -6,8 +6,8 @@ import (
 
 	"gopkg.in/guregu/null.v3"
 
+	"github.com/dockerpedia/api/db"
 	"github.com/gin-gonic/gin"
-	"github.com/sirspock/dockerpedia-api/db"
 )
 
 type RepositorySearchResult struct {

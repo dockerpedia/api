@@ -6,13 +6,13 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirspock/dockerpedia-api/db"
+	"github.com/dockerpedia/api/db"
 	"gopkg.in/guregu/null.v3"
 )
 
 const MAXVALUE = 1000
 
-func Max(x, y int64) int64 {
+func Max(x int64, y int64) int64 {
 	if x > y {
 		return x
 	}
@@ -73,7 +73,7 @@ func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 			&image.Score,
 			&image.Analysed,
 		)
-
+		if (*image.Score =)
 		*images = append(*images, image)
 		if err != nil {
 			fmt.Print(err.Error())
@@ -106,6 +106,8 @@ func FetchImagesViz(c *gin.Context) {
 	var result RepositorySearchResult
 	var best_image_score int64
 	var best_image_size int64
+	var maxSize int64
+
 	getRepositoriesPattern(&repos, pattern)
 	for i := 0; i < len(repos); i++ {
 		images := []Image{}
@@ -118,6 +120,7 @@ func FetchImagesViz(c *gin.Context) {
 			repos[i].Images = append(repos[i].Images, images[j])
 			best_image_score = images[j].Score.Int64
 			best_image_size = images[j].Full_size.Int64
+			maxSize = Max(maxSize, images[j].Full_size.Int64)
 		}
 		repos[i].Score.SetValid(best_image_score)
 		repos[i].Full_size.SetValid(best_image_size)
