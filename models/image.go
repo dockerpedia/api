@@ -10,6 +10,15 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
+const MAXVALUE = 1000
+
+func Max(x, y int64) int64 {
+	if x > y {
+		return x
+	}
+	return y
+}
+
 type Image struct {
 	Id           null.Int    `json:"id"`
 	Name         null.String `json:"name"`
@@ -21,22 +30,22 @@ type Image struct {
 	Status       null.Bool   `json:"status"`
 	Last_try     null.Time   `json:"last_try"`
 	Packages     null.Int    `json:"packages"`
-	Critical     null.Int    `json:"critical"`
-	DefCon1      null.Int    `json:"defcon1"`
-	High         null.Int    `json:"high"`
-	Low          null.Int    `json:"low"`
-	Medium       null.Int    `json:"medium"`
-	Negligible   null.Int    `json:"negligible"`
-	Unknown      null.Int    `json:"unknown"`
-	Score        null.Int    `json:"score"`
+	Critical     null.Int    `json:"vulnerabilitiies_critical"`
+	DefCon1      null.Int    `json:"vulnerabilitiies_defcon1"`
+	High         null.Int    `json:"vulnerabilitiies_high"`
+	Low          null.Int    `json:"vulnerabilitiies_low"`
+	Medium       null.Int    `json:"vulnerabilitiies_medium"`
+	Negligible   null.Int    `json:"vulnerabilitiies_negligible"`
+	Unknown      null.Int    `json:"vulnerabilitiies_unknown"`
+	Score        null.Int    `json:"value"`
 	Analysed     null.Bool   `json:"analysed"`
 }
 
-func getImageRepositorySQL(id int64, images *[]Image) {
+func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 	var image Image
 
-	stmt, err := db.GetDB().Prepare("SELECT * FROM tag WHERE image_id=$1 and analysed ORDER BY SCORE ASC limit 5")
-	rows, err := stmt.Query(id)
+	stmt, err := db.GetDB().Prepare("SELECT * FROM tag WHERE image_id=$1 and analysed ORDER BY SCORE DESC limit $2")
+	rows, err := stmt.Query(id, limit)
 
 	if err != nil {
 		fmt.Print(err.Error())
@@ -83,7 +92,7 @@ func FetchImagesRepository(c *gin.Context) {
 		panic(err)
 	}
 
-	getImageRepositorySQL(int64(id), &images)
+	getImageRepositorySQL(int64(id), &images, 10)
 
 	c.JSON(http.StatusOK, gin.H{
 		"result": images,
@@ -93,18 +102,29 @@ func FetchImagesRepository(c *gin.Context) {
 
 func FetchImagesViz(c *gin.Context) {
 	pattern := c.DefaultQuery("query", "")
-	images := []Image{}
 	repos := []Repository{}
-
+	var result RepositorySearchResult
+	var best_image_score int64
+	var best_image_size int64
 	getRepositoriesPattern(&repos, pattern)
-
 	for i := 0; i < len(repos); i++ {
-		getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images)
-		for _, image := range images {
-			repos[i].Images = append(repos[i].Images, image)
-		}
-	}
+		images := []Image{}
 
-	c.JSON(http.StatusOK, repos)
+		best_image_score = 0
+		best_image_size = 0
+
+		getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, 20)
+		for j := len(images) - 1; j >= 0; j-- {
+			repos[i].Images = append(repos[i].Images, images[j])
+			best_image_score = images[j].Score.Int64
+			best_image_size = images[j].Full_size.Int64
+		}
+		repos[i].Score.SetValid(best_image_score)
+		repos[i].Full_size.SetValid(best_image_size)
+	}
+	result.Repositories = repos
+	result.Name = null.StringFrom(pattern)
+
+	c.JSON(http.StatusOK, result)
 
 }
