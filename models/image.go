@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -39,6 +40,8 @@ type Image struct {
 	Unknown      null.Int    `json:"vulnerabilitiies_unknown"`
 	Score        null.Int    `json:"value"`
 	Analysed     null.Bool   `json:"analysed"`
+	User         string      `json:"username"`
+	Url          string      `json:"url"`
 }
 
 func getImageRepositorySQL(id int64, images *[]Image, limit int) {
@@ -128,5 +131,56 @@ func FetchImagesViz(c *gin.Context) {
 	result.Name = null.StringFrom(pattern)
 
 	c.JSON(http.StatusOK, result)
+
+}
+
+func FetchImage(c *gin.Context) {
+	var image Image
+	id := c.Param("id")
+	sqlStatement := `SELECT *, (select full_name from image where id=tag.image_id) as user
+	FROM tag WHERE id=$1 LIMIT 1;`
+	row := db.GetDB().QueryRow(sqlStatement, id)
+
+	err := row.Scan(
+		&image.Id,
+		&image.Name,
+		&image.Last_updated,
+		&image.Full_size,
+		&image.Id_docker,
+		&image.Image_id,
+		&image.Last_check,
+		&image.Status,
+		&image.Last_try,
+		&image.Packages,
+		&image.Critical,
+		&image.DefCon1,
+		&image.High,
+		&image.Low,
+		&image.Medium,
+		&image.Negligible,
+		&image.Unknown,
+		&image.Score,
+		&image.Analysed,
+		&image.User,
+	)
+	image.Url = fmt.Sprintf("https://hub.docker.com/r/%s/%s", image.User, image.Name.String)
+	fmt.Print(image.Url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c.JSON(http.StatusOK, image)
+}
+
+func FetchImagesVulns(c *gin.Context) {
+	vulns := []Vulnerability{}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	getImageVulnerabilitesSQL(int64(id), &vulns)
+
+	c.JSON(http.StatusOK, vulns)
 
 }
