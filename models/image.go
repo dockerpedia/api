@@ -31,13 +31,13 @@ type Image struct {
 	Status       null.Bool   `json:"status"`
 	Last_try     null.Time   `json:"last_try"`
 	Packages     null.Int    `json:"packages"`
-	Critical     null.Int    `json:"vulnerabilitiies_critical"`
-	DefCon1      null.Int    `json:"vulnerabilitiies_defcon1"`
-	High         null.Int    `json:"vulnerabilitiies_high"`
-	Low          null.Int    `json:"vulnerabilitiies_low"`
-	Medium       null.Int    `json:"vulnerabilitiies_medium"`
-	Negligible   null.Int    `json:"vulnerabilitiies_negligible"`
-	Unknown      null.Int    `json:"vulnerabilitiies_unknown"`
+	Critical     null.Int    `json:"vulnerabilities_critical"`
+	DefCon1      null.Int    `json:"vulnerabilities_defcon1"`
+	High         null.Int    `json:"vulnerabilities_high"`
+	Low          null.Int    `json:"vulnerabilities_low"`
+	Medium       null.Int    `json:"vulnerabilities_medium"`
+	Negligible   null.Int    `json:"vulnerabilities_negligible"`
+	Unknown      null.Int    `json:"vulnerabilities_unknown"`
 	Score        null.Int    `json:"value"`
 	Analysed     null.Bool   `json:"analysed"`
 	User         string      `json:"username"`
@@ -102,6 +102,42 @@ func FetchImagesRepository(c *gin.Context) {
 	})
 }
 
+func FetchImage(c *gin.Context) {
+	var image Image
+	id := c.Param("id")
+	sqlStatement := `SELECT
+        * FROM tag WHERE id=$1 LIMIT 2;`
+	row := db.GetDB().QueryRow(sqlStatement, id)
+
+	err := row.Scan(
+		&image.Id,
+		&image.Name,
+		&image.Last_updated,
+		&image.Full_size,
+		&image.Id_docker,
+		&image.Image_id,
+		&image.Last_check,
+		&image.Status,
+		&image.Last_try,
+		&image.Packages,
+		&image.Critical,
+		&image.DefCon1,
+		&image.High,
+		&image.Low,
+		&image.Medium,
+		&image.Negligible,
+		&image.Unknown,
+		&image.Score,
+		&image.Analysed,
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c.JSON(http.StatusOK, image)
+}
+
 func FetchImagesViz(c *gin.Context) {
 	pattern := c.DefaultQuery("query", "")
 	repos := []Repository{}
@@ -131,7 +167,6 @@ func FetchImagesViz(c *gin.Context) {
 	result.Name = null.StringFrom(pattern)
 
 	c.JSON(http.StatusOK, result)
-
 }
 
 func FetchImage(c *gin.Context) {
