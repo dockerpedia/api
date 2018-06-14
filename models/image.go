@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -99,6 +100,42 @@ func FetchImagesRepository(c *gin.Context) {
 	})
 }
 
+func FetchImage(c *gin.Context) {
+	var image Image
+	id := c.Param("id")
+	sqlStatement := `SELECT
+        * FROM tag WHERE id=$1 LIMIT 2;`
+	row := db.GetDB().QueryRow(sqlStatement, id)
+
+	err := row.Scan(
+		&image.Id,
+		&image.Name,
+		&image.Last_updated,
+		&image.Full_size,
+		&image.Id_docker,
+		&image.Image_id,
+		&image.Last_check,
+		&image.Status,
+		&image.Last_try,
+		&image.Packages,
+		&image.Critical,
+		&image.DefCon1,
+		&image.High,
+		&image.Low,
+		&image.Medium,
+		&image.Negligible,
+		&image.Unknown,
+		&image.Score,
+		&image.Analysed,
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c.JSON(http.StatusOK, image)
+}
+
 func FetchImagesViz(c *gin.Context) {
 	pattern := c.DefaultQuery("query", "")
 	repos := []Repository{}
@@ -128,5 +165,4 @@ func FetchImagesViz(c *gin.Context) {
 	result.Name = null.StringFrom(pattern)
 
 	c.JSON(http.StatusOK, result)
-
 }
