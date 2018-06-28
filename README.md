@@ -1,8 +1,5 @@
-# api
-
 ## How to use?
 
-### Visualization
 
 #### Search images of the user
 
@@ -13,7 +10,7 @@ curl -X POST \
   -d '{ "user": "google"}'
 ```
 
-## Search images with an installed package
+#### Search images with an installed package
 
 ```
 curl -X POST \
