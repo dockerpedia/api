@@ -13,6 +13,11 @@ import (
 
 const MAXVALUE = 1000
 
+type Request struct {
+	User    string `form:"user" json:"user,omitempty"`
+	Package string `form:"package" json:"package,omitempty"`
+}
+
 func Max(x int64, y int64) int64 {
 	if x > y {
 		return x
@@ -102,6 +107,44 @@ func FetchImagesRepository(c *gin.Context) {
 	})
 }
 
+func FetchImagesVizPost(c *gin.Context) {
+	var question Request
+	var result RepositorySearchResult
+	if err := c.ShouldBindJSON(&question); err == nil {
+		repos := []Repository{}
+		var best_image_score, best_image_size, maxSize int64
+		best_image_score, best_image_size, maxSize = 0, 0, 0
+
+		if question.Package != "" {
+			getRepositoriesPattern(&repos, question.Package, true)
+		} else if question.User != "" {
+			getRepositoriesPattern(&repos, question.User, false)
+		}
+
+		for i := 0; i < len(repos); i++ {
+			images := []Image{}
+			getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, 20)
+			for j := len(images) - 1; j >= 0; j-- {
+				repos[i].Images = append(repos[i].Images, images[j])
+				best_image_score = images[j].Score.Int64
+				best_image_size = images[j].Full_size.Int64
+				maxSize = Max(maxSize, images[j].Full_size.Int64)
+			}
+			repos[i].Score.SetValid(best_image_score)
+			repos[i].Full_size.SetValid(best_image_size)
+		}
+		result.Repositories = repos
+		result.Name = null.StringFrom(question.Package)
+
+		c.JSON(http.StatusOK, gin.H{
+			"count":  len(repos),
+			"result": result,
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+}
+
 func FetchImagesViz(c *gin.Context) {
 	pattern := c.DefaultQuery("query", "")
 	repos := []Repository{}
@@ -110,7 +153,7 @@ func FetchImagesViz(c *gin.Context) {
 	var best_image_size int64
 	var maxSize int64
 
-	getRepositoriesPattern(&repos, pattern)
+	getRepositoriesPattern(&repos, pattern, true)
 	for i := 0; i < len(repos); i++ {
 		images := []Image{}
 

@@ -1,7 +1,9 @@
 package models
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 
 	"gopkg.in/guregu/null.v3"
@@ -89,19 +91,39 @@ func SearchRepository(c *gin.Context) {
 	})
 }
 
-func getRepositoriesPattern(repos *[]Repository, pattern string) {
-	var repo Repository
-	stmt, err := db.GetDB().Prepare(`
-SELECT * FROM image
-WHERE LOWER(name) like LOWER('%' || $1 || '%')
-AND analysed='t' ORDER BY pull_count DESC limit 10
+func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
+	if pattern {
+		stmt, err := db.GetDB().Prepare(`
+	SELECT * FROM image
+	WHERE LOWER(name) like LOWER('%' || $1 || '%')
+	AND analysed='t' ORDER BY pull_count DESC limit 10
 		`)
-	rows, err := stmt.Query(pattern)
+		if err != nil {
+			return nil, err
+		}
+		rows, err := stmt.Query(search)
+		return rows, err
 
-	if err != nil {
-		fmt.Print(err.Error())
+	} else {
+		stmt, err := db.GetDB().Prepare(`
+	SELECT * FROM image
+	WHERE namespace=$1 ORDER BY pull_count DESC limit 10
+			`)
+		if err != nil {
+			return nil, err
+		}
+		rows, err := stmt.Query(search)
+		return rows, err
 	}
 
+}
+
+func getRepositoriesPattern(repos *[]Repository, search string, packages bool) {
+	var repo Repository
+	rows, err := getRepositoryPatternQuery(search, packages)
+	if err != nil {
+		log.Printf("error: %s", err)
+	}
 	for rows.Next() {
 		err = rows.Scan(
 			&repo.Id,
