@@ -214,15 +214,33 @@ func FetchImage(c *gin.Context) {
 	c.JSON(http.StatusOK, image)
 }
 
+func vulnsBy(sev string, store map[string][]Vulnerability) []Vulnerability {
+	items, found := store[sev]
+	if !found {
+		items = make([]Vulnerability, 0)
+		store[sev] = items
+	}
+	return items
+}
+
+
+func groupBySeverity(vs []Vulnerability) map[string][]Vulnerability {
+	var store = make(map[string][]Vulnerability)
+	for _, v := range vs {
+		sevRow := vulnsBy(v.Severity, store)
+		store[v.Severity] = append(sevRow, v)
+	}
+	return store
+}
+
+
 func FetchImagesVulns(c *gin.Context) {
 	vulns := []Vulnerability{}
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		panic(err)
+		log.Printf("err")
 	}
-
 	getImageVulnerabilitesSQL(int64(id), &vulns)
-
-	c.JSON(http.StatusOK, vulns)
-
+	groups := groupBySeverity(vulns)
+	c.JSON(http.StatusOK, groups)
 }
