@@ -22,6 +22,7 @@ func main() {
 		v1.GET("/images/:id/vulnerabilities", models.FetchImagesVulns)
 		v1.GET("/vulnerability/:id", models.FetchVulnerability)
 		v1.POST("/viz", models.FetchImagesVizPost)
+		v1.GET("/images/:id/packages", models.FetchImagesPackages)
 
 	}
 
