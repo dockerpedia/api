@@ -18,6 +18,7 @@ type Request struct {
 	Package string `form:"package" json:"package,omitempty"`
 }
 
+
 func Max(x int64, y int64) int64 {
 	if x > y {
 		return x
@@ -233,6 +234,21 @@ func groupBySeverity(vs []Vulnerability) map[string][]Vulnerability {
 	return store
 }
 
+func countBySeverity(vs []Vulnerability) map[string]int {
+	var store = make(map[string][]Vulnerability)
+	var count = make(map[string]int)
+	for _, v := range vs {
+		sevRow := vulnsBy(v.Severity, store)
+		store[v.Severity] = append(sevRow, v)
+	}
+
+	for sev, vulns := range store{
+		count[sev] = len(vulns)
+	}
+	return count
+}
+
+
 
 func FetchImagesVulns(c *gin.Context) {
 	vulns := []Vulnerability{}
@@ -243,4 +259,23 @@ func FetchImagesVulns(c *gin.Context) {
 	getImageVulnerabilitesSQL(int64(id), &vulns)
 	groups := groupBySeverity(vulns)
 	c.JSON(http.StatusOK, groups)
+}
+
+
+func FetchImagesPackages(c *gin.Context) {
+	packages := []Feature{}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		log.Printf("err")
+	}
+	getImagePackagesSQL(int64(id), &packages)
+	for i := 0; i < len(packages); i++{
+		vulns := []Vulnerability{}
+		getVulnerabilityPackage(packages[i].VersionId, &vulns)
+		packages[i].Vulnerabilities = vulns
+		packages[i].Summary = countBySeverity(vulns)
+	}
+
+
+	c.JSON(http.StatusOK, packages)
 }
