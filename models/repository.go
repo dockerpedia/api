@@ -49,7 +49,9 @@ func SearchRepository(c *gin.Context) {
 
 	fmt.Println(pattern)
 
-	stmt, err := db.GetDB().Prepare("SELECT * FROM image WHERE LOWER(name) like LOWER('%' || $1 || '%')  ORDER BY pull_count DESC limit 2")
+	stmt, err := db.GetDB().Prepare(`SELECT * FROM image 
+	WHERE LOWER(name) like LOWER('%' || $1 || '%')  ORDER BY pull_count DESC limit 2`)
+
 	rows, err := stmt.Query(pattern)
 
 	if err != nil {
