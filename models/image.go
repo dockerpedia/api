@@ -2,16 +2,16 @@ package models
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	"strconv"
-
-	"github.com/dockerpedia/api/db"
+				"github.com/dockerpedia/api/db"
+		"gopkg.in/guregu/null.v3"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/guregu/null.v3"
+	"strconv"
+	"net/http"
+	"log"
 )
 
 const MAXVALUE = 1000
+const NUMBER_IMAGES = 100
 
 type Request struct {
 	User    string `form:"user" json:"user,omitempty"`
@@ -48,6 +48,7 @@ type Image struct {
 	Analysed     null.Bool   `json:"analysed"`
 	User         string      `json:"username"`
 	Url          string      `json:"url"`
+	OperatingSystem string	 `json:"operating_system"`
 }
 
 func getImageRepositorySQL(id int64, images *[]Image, limit int) {
@@ -82,10 +83,42 @@ func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 			&image.Score,
 			&image.Analysed,
 		)
+		getOperatingSystem(&image)
 		*images = append(*images, image)
 		if err != nil {
 			fmt.Print(err.Error())
 		}
+	}
+}
+
+/*
+Get operating system
+ */
+func getOperatingSystem(image *Image){
+	stmt, err := db.GetDB().Prepare(`select n.name FROM image as repo
+	JOIN tag as image
+	ON repo.id = image.image_id
+	JOIN tag_layer as tl
+	ON image.id = tl.tag_id
+	JOIN layer as l
+	ON tl.layer_id = l.id
+	JOIN namespace as n
+	ON n.id = l.namespace_id
+	where image.id=$1 limit 1`)
+	row := stmt.QueryRow(image.Id)
+
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	err = row.Scan(
+		&image.OperatingSystem,
+	)
+
+	if err != nil {
+		image.OperatingSystem = "unknown"
+		fmt.Println(err.Error())
 	}
 }
 
@@ -100,7 +133,7 @@ func FetchImagesRepository(c *gin.Context) {
 		panic(err)
 	}
 
-	getImageRepositorySQL(int64(id), &images, 10)
+	getImageRepositorySQL(int64(id), &images, NUMBER_IMAGES)
 
 	c.JSON(http.StatusOK, gin.H{
 		"result": images,
@@ -124,7 +157,7 @@ func FetchImagesVizPost(c *gin.Context) {
 
 		for i := 0; i < len(repos); i++ {
 			images := []Image{}
-			getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, 20)
+			getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, NUMBER_IMAGES)
 			for j := len(images) - 1; j >= 0; j-- {
 				repos[i].Images = append(repos[i].Images, images[j])
 				best_image_score = images[j].Score.Int64
@@ -161,10 +194,11 @@ func FetchImagesViz(c *gin.Context) {
 		best_image_score = 0
 		best_image_size = 0
 
-		getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, 20)
+		getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, NUMBER_IMAGES)
 		for j := len(images) - 1; j >= 0; j-- {
 			repos[i].Images = append(repos[i].Images, images[j])
 			best_image_score = images[j].Score.Int64
+			getOperatingSystem(&images[j])
 			best_image_size = images[j].Full_size.Int64
 			maxSize = Max(maxSize, images[j].Full_size.Int64)
 		}
