@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"net/http"
 	"log"
-)
+	)
 
 const MAXVALUE = 1000
-const NUMBER_IMAGES = 100
+const NUMBER_IMAGES = 20
 
 type Request struct {
 	User    string `form:"user" json:"user,omitempty"`
@@ -49,6 +49,7 @@ type Image struct {
 	User         string      `json:"username"`
 	Url          string      `json:"url"`
 	OperatingSystem string	 `json:"operating_system"`
+	Risk        string       `json:"risk"`
 }
 
 func getImageRepositorySQL(id int64, images *[]Image, limit int) {
@@ -84,6 +85,7 @@ func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 			&image.Analysed,
 		)
 		getOperatingSystem(&image)
+		calculateRisk(&image)
 		*images = append(*images, image)
 		if err != nil {
 			fmt.Print(err.Error())
@@ -91,6 +93,19 @@ func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 	}
 }
 
+func calculateRisk(image *Image){
+	if image.Critical.ValueOrZero() > 0 {
+		image.Risk = "critical"
+	}else if image.High.ValueOrZero() > 0{
+		image.Risk = "high"
+	}else if image.Medium.ValueOrZero() > 0{
+		image.Risk = "medium"
+	} else if image.Low.ValueOrZero() > 0 || image.Unknown.ValueOrZero() > 0 || image.Negligible.ValueOrZero() > 0 {
+		image.Risk = "low"
+	} else if image.Negligible.ValueOrZero() > 0 || image.Unknown.ValueOrZero() > 0 {
+		image.Risk = "none"
+	}
+}
 /*
 Get operating system
  */
