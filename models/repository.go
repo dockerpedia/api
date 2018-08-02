@@ -98,7 +98,7 @@ func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 		stmt, err := db.GetDB().Prepare(`
 	SELECT * FROM image
 	WHERE LOWER(name) like LOWER('%' || $1 || '%')
-	AND analysed='t' ORDER BY pull_count DESC limit 10
+	AND analysed='t' ORDER BY pull_count DESC
 		`)
 		if err != nil {
 			return nil, err
@@ -109,7 +109,7 @@ func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 	} else {
 		stmt, err := db.GetDB().Prepare(`
 	SELECT * FROM image
-	WHERE namespace=$1 ORDER BY pull_count DESC limit 10
+	WHERE namespace=$1 ORDER BY pull_count DESC
 			`)
 		if err != nil {
 			return nil, err

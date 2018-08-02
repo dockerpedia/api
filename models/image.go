@@ -16,6 +16,7 @@ const NUMBER_IMAGES = 20
 type Request struct {
 	User    string `form:"user" json:"user,omitempty"`
 	Package string `form:"package" json:"package,omitempty"`
+	Images int	`form:"images" json:"images",omitempty"`
 }
 
 
@@ -102,7 +103,7 @@ func calculateRisk(image *Image){
 		image.Risk = "medium"
 	} else if image.Low.ValueOrZero() > 0 || image.Unknown.ValueOrZero() > 0 || image.Negligible.ValueOrZero() > 0 {
 		image.Risk = "low"
-	} else if image.Negligible.ValueOrZero() > 0 || image.Unknown.ValueOrZero() > 0 {
+	} else {
 		image.Risk = "none"
 	}
 }
@@ -163,6 +164,7 @@ func FetchImagesVizPost(c *gin.Context) {
 		repos := []Repository{}
 		var best_image_score, best_image_size, maxSize int64
 		best_image_score, best_image_size, maxSize = 0, 0, 0
+		var numberImages int
 
 		if question.Package != "" {
 			getRepositoriesPattern(&repos, question.Package, true)
@@ -170,9 +172,15 @@ func FetchImagesVizPost(c *gin.Context) {
 			getRepositoriesPattern(&repos, question.User, false)
 		}
 
+		if question.Images > 0 {
+			numberImages = question.Images
+		} else {
+			numberImages = NUMBER_IMAGES
+		}
+
 		for i := 0; i < len(repos); i++ {
 			images := []Image{}
-			getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, NUMBER_IMAGES)
+			getImageRepositorySQL(repos[i].Id.ValueOrZero(), &images, numberImages)
 			for j := len(images) - 1; j >= 0; j-- {
 				repos[i].Images = append(repos[i].Images, images[j])
 				best_image_score = images[j].Score.Int64
