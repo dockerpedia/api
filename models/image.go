@@ -16,7 +16,7 @@ const NUMBER_IMAGES = 20
 type Request struct {
 	User    string `form:"user" json:"user,omitempty"`
 	Package string `form:"package" json:"package,omitempty"`
-	Images int	`form:"images" json:"images",omitempty"`
+	numberImages string `form:"number_images" json:"number_images,omitempty"`
 }
 
 
@@ -53,7 +53,7 @@ type Image struct {
 	Risk        string       `json:"risk"`
 }
 
-func getImageRepositorySQL(id int64, images *[]Image, limit int) {
+func getImageRepositorySQL(id int64, images *[]Image, limit int64) {
 	var image Image
 
 	stmt, err := db.GetDB().Prepare("SELECT * FROM tag WHERE image_id=$1 and analysed ORDER BY SCORE DESC limit $2")
@@ -170,12 +170,6 @@ func FetchImagesVizPost(c *gin.Context) {
 			getRepositoriesPattern(&repos, question.Package, true)
 		} else if question.User != "" {
 			getRepositoriesPattern(&repos, question.User, false)
-		}
-
-		if question.Images > 0 {
-			numberImages = question.Images
-		} else {
-			numberImages = NUMBER_IMAGES
 		}
 
 		for i := 0; i < len(repos); i++ {
