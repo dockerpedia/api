@@ -2,8 +2,7 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
+		"log"
 	"net/http"
 
 	"gopkg.in/guregu/null.v3"
@@ -47,7 +46,6 @@ func SearchRepository(c *gin.Context) {
 		repos []Repository
 	)
 
-	fmt.Println(pattern)
 
 	stmt, err := db.GetDB().Prepare(`SELECT * FROM image 
 	WHERE LOWER(name) like LOWER('%' || $1 || '%')  ORDER BY pull_count DESC limit 2`)
@@ -55,7 +53,7 @@ func SearchRepository(c *gin.Context) {
 	rows, err := stmt.Query(pattern)
 
 	if err != nil {
-		fmt.Print(err.Error())
+		log.Print(err.Error())
 	}
 
 	for rows.Next() {
@@ -81,7 +79,7 @@ func SearchRepository(c *gin.Context) {
 
 		repos = append(repos, repo)
 		if err != nil {
-			fmt.Print(err.Error())
+			log.Print(err.Error())
 		}
 	}
 
@@ -93,12 +91,12 @@ func SearchRepository(c *gin.Context) {
 	})
 }
 
-func getRepositoryPatternQuery(search string, pattern bool, numberImages int64) (*sql.Rows, error) {
+func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 	if pattern {
 		stmt, err := db.GetDB().Prepare(`
 	SELECT * FROM image
 	WHERE LOWER(name) like LOWER('%' || $1 || '%')
-	AND analysed='t' ORDER BY pull_count DESC limit $2
+	AND analysed='t' ORDER BY pull_count DESC
 		`)
 		if err != nil {
 			return nil, err
@@ -109,7 +107,7 @@ func getRepositoryPatternQuery(search string, pattern bool, numberImages int64) 
 	} else {
 		stmt, err := db.GetDB().Prepare(`
 	SELECT * FROM image
-	WHERE namespace=$1 ORDER BY pull_count DESC limit $2
+	WHERE namespace=$1 ORDER BY pull_count
 			`)
 		if err != nil {
 			return nil, err
@@ -120,7 +118,7 @@ func getRepositoryPatternQuery(search string, pattern bool, numberImages int64) 
 
 }
 
-func getRepositoriesPattern(repos *[]Repository, search string, packages bool, numberImages int64) {
+func getRepositoriesPattern(repos *[]Repository, search string, packages bool) {
 	var repo Repository
 	rows, err := getRepositoryPatternQuery(search, packages)
 	if err != nil {

@@ -16,7 +16,7 @@ const NUMBER_IMAGES = 20
 type Request struct {
 	User    string `form:"user" json:"user,omitempty"`
 	Package string `form:"package" json:"package,omitempty"`
-	numberImages string `form:"number_images" json:"number_images,omitempty"`
+	Images int `form:"images" json:"images,omitempty"`
 }
 
 
@@ -53,14 +53,14 @@ type Image struct {
 	Risk        string       `json:"risk"`
 }
 
-func getImageRepositorySQL(id int64, images *[]Image, limit int64) {
+func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 	var image Image
 
 	stmt, err := db.GetDB().Prepare("SELECT * FROM tag WHERE image_id=$1 and analysed ORDER BY SCORE DESC limit $2")
 	rows, err := stmt.Query(id, limit)
 
 	if err != nil {
-		fmt.Print(err.Error())
+		log.Print(err.Error())
 	}
 
 	for rows.Next() {
@@ -89,7 +89,7 @@ func getImageRepositorySQL(id int64, images *[]Image, limit int64) {
 		calculateRisk(&image)
 		*images = append(*images, image)
 		if err != nil {
-			fmt.Print(err.Error())
+			log.Print(err.Error())
 		}
 	}
 }
@@ -125,7 +125,7 @@ func getOperatingSystem(image *Image){
 
 
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 
 	err = row.Scan(
@@ -134,7 +134,6 @@ func getOperatingSystem(image *Image){
 
 	if err != nil {
 		image.OperatingSystem = "unknown"
-		fmt.Println(err.Error())
 	}
 }
 
@@ -165,6 +164,12 @@ func FetchImagesVizPost(c *gin.Context) {
 		var best_image_score, best_image_size, maxSize int64
 		best_image_score, best_image_size, maxSize = 0, 0, 0
 		var numberImages int
+
+		if question.Images > 0 {
+			numberImages = question.Images
+		} else {
+			numberImages = 0
+		}
 
 		if question.Package != "" {
 			getRepositoriesPattern(&repos, question.Package, true)
@@ -258,7 +263,6 @@ func FetchImage(c *gin.Context) {
 		&image.User,
 	)
 	image.Url = fmt.Sprintf("https://hub.docker.com/r/%s/%s", image.User, image.Name.String)
-	fmt.Print(image.Url)
 	if err != nil {
 		log.Fatal(err)
 	}
