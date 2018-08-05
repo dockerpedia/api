@@ -118,20 +118,27 @@ func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 
 }
 
-func getRepoImages(repos *[]Repository, imageRepoIds *[]int, search string, numberImages int) {
+func getRepoImages(repos *[]Repository, imageRepoIds *[]int, search string, numberImages int, packages bool) {
 	var repo Repository
 	var image Image
 	repoHash := make(map[int64]bool)
 	imagesHash := make(map[int64][]Image)
-	stmt, err := db.GetDB().Prepare(`
+	var rows *sql.Rows
+	var err error
+	if packages {
+		stmt, _ := db.GetDB().Prepare(`
 SELECT image.*, tag.* from image JOIN lateral 
 (select * from tag where tag.image_id=image.id and tag.analysed limit $1) tag on true 
+WHERE LOWER(image.name) like LOWER('%' || $2 || '%')  ORDER BY pull_count DESC`)
+		rows, err = stmt.Query(numberImages, search)
+
+	} else {
+		stmt, _ := db.GetDB().Prepare(`SELECT image.*, tag.* from image JOIN lateral 
+(select * from tag where tag.image_id=image.id and tag.analysed limit $1) tag on true 
 WHERE image.namespace=$2`)
-	if err != nil {
-		log.Println("error join stmt", err)
+		rows, err = stmt.Query(numberImages, search)
 	}
 
-	rows, err := stmt.Query(numberImages, search)
 	if err != nil {
 		log.Println("error join query", err)
 	}
@@ -178,12 +185,11 @@ WHERE image.namespace=$2`)
 		)
 		repoId := repo.Id.Int64
 		imagesHash[repoId]= append(imagesHash[repoId], image)
+		repo.Images = imagesHash[repo.Id.Int64]
 		if _, ok := repoHash[repo.Id.Int64]; !ok {
 			*repos = append(*repos, repo)
 			repoHash[repo.Id.Int64] = true
 		}
-
-		repo.Images = imagesHash[repo.Id.Int64]
 	}
 	defer rows.Close()
 }

@@ -217,7 +217,12 @@ func FetchImagesVizPostv2(c *gin.Context) {
 		}
 
 
-		getRepoImages(&repos, &imageRepoIds, question.User, numberImages)
+		if question.Package != "" {
+			getRepoImages(&repos, &imageRepoIds, question.Package, numberImages, true)
+		} else if question.User != "" {
+			getRepoImages(&repos, &imageRepoIds, question.User, numberImages, false)
+		}
+
 		result.Repositories = repos
 
 		c.JSON(http.StatusOK, gin.H{
