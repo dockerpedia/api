@@ -118,20 +118,20 @@ func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 
 }
 
-func getRepoImages(repos *[]Repository, imageRepoIds *[]int, search string) {
+func getRepoImages(repos *[]Repository, imageRepoIds *[]int, search string, numberImages int) {
 	var repo Repository
 	var image Image
 	repoHash := make(map[int64]bool)
 	imagesHash := make(map[int64][]Image)
 	stmt, err := db.GetDB().Prepare(`
 SELECT image.*, tag.* from image JOIN lateral 
-(select * from tag where tag.image_id=image.id and tag.analysed limit 1000) tag on true 
-WHERE image.namespace=$1`)
+(select * from tag where tag.image_id=image.id and tag.analysed limit $1) tag on true 
+WHERE image.namespace=$2`)
 	if err != nil {
 		log.Println("error join stmt", err)
 	}
 
-	rows, err := stmt.Query(search)
+	rows, err := stmt.Query(numberImages, search)
 	if err != nil {
 		log.Println("error join query", err)
 	}

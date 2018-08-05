@@ -84,6 +84,7 @@ func getImageRepositorySQL(id int64, images *[]Image, limit int) {
 			&image.Unknown,
 			&image.Score,
 			&image.Analysed,
+			&image.OperatingSystem,
 		)
 		getOperatingSystem(&image)
 		calculateRisk(&image)
@@ -168,7 +169,7 @@ func FetchImagesVizPost(c *gin.Context) {
 		if question.Images > 0 {
 			numberImages = question.Images
 		} else {
-			numberImages = 0
+			numberImages = 100
 		}
 
 		if question.Package != "" {
@@ -205,10 +206,18 @@ func FetchImagesVizPostv2(c *gin.Context) {
 	var question Request
 	var result RepositorySearchResult
 	var imageRepoIds []int
+	var numberImages int
 	if err := c.ShouldBindJSON(&question); err == nil {
 		repos := []Repository{}
 
-		getRepoImages(&repos, &imageRepoIds, question.User)
+		if question.Images > 0 {
+			numberImages = question.Images
+		} else {
+			numberImages = 100
+		}
+
+
+		getRepoImages(&repos, &imageRepoIds, question.User, numberImages)
 		result.Repositories = repos
 
 		c.JSON(http.StatusOK, gin.H{
@@ -239,7 +248,6 @@ func FetchImagesViz(c *gin.Context) {
 		for j := len(images) - 1; j >= 0; j-- {
 			repos[i].Images = append(repos[i].Images, images[j])
 			best_image_score = images[j].Score.Int64
-			getOperatingSystem(&images[j])
 			best_image_size = images[j].Full_size.Int64
 			maxSize = Max(maxSize, images[j].Full_size.Int64)
 		}
@@ -280,6 +288,7 @@ func FetchImage(c *gin.Context) {
 		&image.Score,
 		&image.Analysed,
 		&image.User,
+		&image.OperatingSystem,
 	)
 	image.Url = fmt.Sprintf("https://hub.docker.com/r/%s/%s", image.User, image.Name.String)
 	if err != nil {
