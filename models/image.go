@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"net/http"
 	"log"
-	)
+)
 
 const MAXVALUE = 1000
 const NUMBER_IMAGES = 20
@@ -191,6 +191,25 @@ func FetchImagesVizPost(c *gin.Context) {
 		}
 		result.Repositories = repos
 		result.Name = null.StringFrom(question.Package)
+
+		c.JSON(http.StatusOK, gin.H{
+			"count":  len(repos),
+			"result": result,
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+}
+
+func FetchImagesVizPostv2(c *gin.Context) {
+	var question Request
+	var result RepositorySearchResult
+	var imageRepoIds []int
+	if err := c.ShouldBindJSON(&question); err == nil {
+		repos := []Repository{}
+
+		getRepoImages(&repos, &imageRepoIds, question.User)
+		result.Repositories = repos
 
 		c.JSON(http.StatusOK, gin.H{
 			"count":  len(repos),

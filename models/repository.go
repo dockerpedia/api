@@ -107,7 +107,7 @@ func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 	} else {
 		stmt, err := db.GetDB().Prepare(`
 	SELECT * FROM image
-	WHERE namespace=$1 ORDER BY pull_count
+	WHERE namespace=$1 	AND analysed='t' ORDER BY pull_count
 			`)
 		if err != nil {
 			return nil, err
@@ -116,6 +116,76 @@ func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 		return rows, err
 	}
 
+}
+
+func getRepoImages(repos *[]Repository, imageRepoIds *[]int, search string) {
+	var repo Repository
+	var image Image
+	repoHash := make(map[int64]bool)
+	imagesHash := make(map[int64][]Image)
+	stmt, err := db.GetDB().Prepare(`
+SELECT image.*, tag.* from image JOIN lateral 
+(select * from tag where tag.image_id=image.id and tag.analysed limit 1000) tag on true 
+WHERE image.namespace=$1`)
+	if err != nil {
+		log.Println("error join stmt", err)
+	}
+
+	rows, err := stmt.Query(search)
+	if err != nil {
+		log.Println("error join query", err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(
+			&repo.Id,
+			&repo.Name,
+			&repo.Full_name,
+			&repo.Namespace,
+			&repo.User,
+			&repo.Affiliation,
+			&repo.Description,
+			&repo.Is_automated,
+			&repo.Last_updated,
+			&repo.Pull_count,
+			&repo.Repository_type,
+			&repo.Star_count,
+			&repo.Status,
+			&repo.Tags_checked,
+			&repo.Official,
+			&repo.Score,
+			&repo.Analysed,
+			&image.Id,
+			&image.Name,
+			&image.Last_updated,
+			&image.Full_size,
+			&image.Id_docker,
+			&image.Image_id,
+			&image.Last_check,
+			&image.Status,
+			&image.Last_try,
+			&image.Packages,
+			&image.Critical,
+			&image.DefCon1,
+			&image.High,
+			&image.Low,
+			&image.Medium,
+			&image.Negligible,
+			&image.Unknown,
+			&image.Score,
+			&image.Analysed,
+			&image.OperatingSystem,
+		)
+		repoId := repo.Id.Int64
+		imagesHash[repoId]= append(imagesHash[repoId], image)
+		if _, ok := repoHash[repo.Id.Int64]; !ok {
+			*repos = append(*repos, repo)
+			repoHash[repo.Id.Int64] = true
+		}
+
+		repo.Images = imagesHash[repo.Id.Int64]
+	}
+	defer rows.Close()
 }
 
 func getRepositoriesPattern(repos *[]Repository, search string, packages bool) {
