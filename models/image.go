@@ -208,12 +208,12 @@ func FetchImagesVizPostv2(c *gin.Context) {
 	var imageRepoIds []int
 	var numberImages int
 	if err := c.ShouldBindJSON(&question); err == nil {
-		repos := []Repository{}
+		var repos Repositories
 
 		if question.Images > 0 {
 			numberImages = question.Images
 		} else {
-			numberImages = 100
+			numberImages = 20
 		}
 
 
@@ -224,12 +224,12 @@ func FetchImagesVizPostv2(c *gin.Context) {
 		}
 
 		result.Repositories = repos
-
+		
 		c.JSON(http.StatusOK, gin.H{
 			"count":  len(repos),
 			"result": result,
 		})
-	} else {
+		} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 }

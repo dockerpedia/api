@@ -9,13 +9,12 @@ import (
 
 	"github.com/dockerpedia/api/db"
 	"github.com/gin-gonic/gin"
-)
+	)
 
 type RepositorySearchResult struct {
 	Name         null.String  `json:"name"`
-	Repositories []Repository `json:"children"`
+	Repositories Repositories `json:"children"`
 }
-
 type Repository struct {
 	Id              null.Int    `json:"id"`
 	Name            null.String `json:"name"`
@@ -37,13 +36,21 @@ type Repository struct {
 	Full_size       null.Int    `json:"full_size"`
 	Analysed        null.Bool   `json:"is_automated"`
 }
+type Repositories []Repository
+
+func (repositories *Repositories) ModifyImage(images map[int64][]Image){
+	for i := 0; i < len(*repositories); i++ {
+		(*repositories)[i].Images = images[(*repositories)[i].Id.Int64]
+	}
+
+}
 
 func SearchRepository(c *gin.Context) {
 	pattern := c.DefaultQuery("query", "mysql")
 
 	var (
 		repo  Repository
-		repos []Repository
+		repos Repositories
 	)
 
 
@@ -118,17 +125,19 @@ func getRepositoryPatternQuery(search string, pattern bool) (*sql.Rows, error) {
 
 }
 
-func getRepoImages(repos *[]Repository, imageRepoIds *[]int, search string, numberImages int, packages bool) {
+
+func getRepoImages(repos *Repositories, imageRepoIds *[]int, search string, numberImages int, packages bool) {
 	var repo Repository
 	var image Image
 	repoHash := make(map[int64]bool)
 	imagesHash := make(map[int64][]Image)
+
 	var rows *sql.Rows
 	var err error
 	if packages {
 		stmt, _ := db.GetDB().Prepare(`
 SELECT image.*, tag.* from image JOIN lateral 
-(select * from tag where tag.image_id=image.id and tag.analysed limit $1) tag on true 
+(select * from tag where tag.image_id=image.id and tag.analysed ORDER BY score DESC limit $1) tag on true 
 WHERE LOWER(image.name) like LOWER('%' || $2 || '%')  ORDER BY pull_count DESC`)
 		rows, err = stmt.Query(numberImages, search)
 
@@ -184,14 +193,18 @@ WHERE image.namespace=$2`)
 			&image.OperatingSystem,
 		)
 		repoId := repo.Id.Int64
-		imagesHash[repoId]= append(imagesHash[repoId], image)
-		repo.Images = imagesHash[repo.Id.Int64]
-		if _, ok := repoHash[repo.Id.Int64]; !ok {
+
+		if _, ok := repoHash[repoId]; !ok {
 			*repos = append(*repos, repo)
-			repoHash[repo.Id.Int64] = true
+			repoHash[repoId] = true
 		}
+		imagesHash[repoId] = append(imagesHash[repoId], image)
+
 	}
+
 	defer rows.Close()
+	repos.ModifyImage(imagesHash)
+
 }
 
 func getRepositoriesPattern(repos *[]Repository, search string, packages bool) {
