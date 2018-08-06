@@ -198,6 +198,7 @@ WHERE image.namespace=$2`)
 			*repos = append(*repos, repo)
 			repoHash[repoId] = true
 		}
+		calculateRisk(&image)
 		imagesHash[repoId] = append(imagesHash[repoId], image)
 
 	}
