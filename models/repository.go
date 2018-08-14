@@ -16,33 +16,75 @@ type RepositorySearchResult struct {
 	Repositories Repositories `json:"children"`
 }
 type Repository struct {
-	Id              null.Int    `json:"id"`
-	Name            null.String `json:"name"`
-	Full_name       null.String `json:"full_name"`
-	Namespace       null.String `json:"namespace"`
-	User            null.String `json:"user"`
-	Affiliation     null.String `json:"affilation"`
-	Description     null.String `json:"description"`
-	Is_automated    null.Bool   `json:"is_automated"`
-	Last_updated    null.Time   `json:"last_updated"`
-	Pull_count      null.Int    `json:"pull_count"`
-	Repository_type null.String `json:"repository_type"`
-	Star_count      null.Int    `json:"start_count"`
-	Status          null.Bool   `json:"status"`
-	Tags_checked    null.Time   `json:"tags_checked"`
-	Official        null.Bool   `json:"official"`
-	Score           null.Int    `json:"value"`
-	Images          []Image     `json:"children"`
-	Full_size       null.Int    `json:"full_size"`
-	Analysed        null.Bool   `json:"is_automated"`
+	Id              null.Int    `json:"id",omitempty`
+	Name            null.String `json:"name",omitempty`
+	Full_name       null.String `json:"full_name",omitempty`
+	Namespace       null.String `json:"namespace",omitempty`
+	User            null.String `json:"user",omitempty`
+	Affiliation     null.String `json:"affilation",omitempty`
+	Description     null.String `json:"description",omitempty`
+	Is_automated    null.Bool   `json:"is_automated",omitempty`
+	Last_updated    null.Time   `json:"last_updated",omitempty`
+	Pull_count      null.Int    `json:"pull_count",omitempty`
+	Repository_type null.String `json:"repository_type",omitempty`
+	Star_count      null.Int    `json:"start_count",omitempty`
+	Status          null.Bool   `json:"status",omitempty`
+	Tags_checked    null.Time   `json:"tags_checked",omitempty`
+	Official        null.Bool   `json:"official",omitempty`
+	Score           null.Int    `json:"value",omitempty`
+	Images          []Image     `json:"children",omitempty`
+	Full_size       null.Int    `json:"full_size",omitempty`
+	Analysed        null.Bool   `json:"is_automated",omitempty`
 }
 type Repositories []Repository
+
+type RepositoryQuery struct {
+	Namespace       null.String `json:"namespace",omitempty`
+}
 
 func (repositories *Repositories) ModifyImage(images map[int64][]Image){
 	for i := 0; i < len(*repositories); i++ {
 		(*repositories)[i].Images = images[(*repositories)[i].Id.Int64]
 	}
 
+}
+
+
+func SearchUser(c *gin.Context) {
+	pattern := c.DefaultQuery("query", "mysql")
+
+	var (
+		repo  RepositoryQuery
+		repos []string
+	)
+
+
+	stmt, err := db.GetDB().Prepare(`SELECT DISTINCT namespace FROM image 
+	WHERE analysed='t' AND namespace like LOWER($1 || '%')`)
+
+	rows, err := stmt.Query(pattern)
+
+	if err != nil {
+		log.Print(err.Error())
+	}
+
+	for rows.Next() {
+		err = rows.Scan(
+			&repo.Namespace,
+		)
+
+		repos = append(repos, repo.Namespace.String)
+		if err != nil {
+			log.Print(err.Error())
+		}
+	}
+
+	defer rows.Close()
+
+	c.JSON(http.StatusOK,  gin.H{
+		"result": repos,
+		"count":  len(repos),
+	})
 }
 
 func SearchRepository(c *gin.Context) {

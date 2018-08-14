@@ -23,6 +23,7 @@ func main() {
 		v1.GET("/images/:id/packages", models.FetchImagesPackages)
 
 		v1.GET("/viz", models.FetchImagesViz)
+		v1.GET("/users", models.SearchUser)
 		v1.POST("/viz", models.FetchImagesVizPost)
 		v1.POST("/viz2", models.FetchImagesVizPostv2)
 	}
