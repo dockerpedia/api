@@ -60,7 +60,7 @@ func SearchUser(c *gin.Context) {
 
 
 	stmt, err := db.GetDB().Prepare(`SELECT DISTINCT namespace FROM image 
-	WHERE analysed='t' AND namespace like LOWER($1 || '%')`)
+	WHERE analysed='t' AND namespace like LOWER($1 || '%') LIMIT 10`)
 
 	rows, err := stmt.Query(pattern)
 
